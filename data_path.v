@@ -8,16 +8,16 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
   wire[11:0] branched_pc;
 
   assign incremented_pc = pc + 1;
-  assign branched_pc =  pc + 1 + {{4{instruction[7]}},instruction[7:0]};
+  assign branched_pc =  idex_out_new_pc + {{4{idex_out_ins70[7]}},idex_out_ins70[7:0]};
 
   always @(posedge clk) begin
     if (update_z_c==1) 
       carry <= alu_carry_out;
-      case(pc_src)
+      case(exmem_out_MEM_pc_src)
         2'b00: pc <= pc + 1;
-        2'b01: pc <= instruction[11:0];
+        2'b01: pc <= ifid_out_instruction[11:0];
         2'b10: pc <= stack_out;
-        2'b11: pc <= pc + 1 + {{4{instruction[7]}},instruction[7:0]};
+        2'b11: pc <= branched_pc;
       endcase
   end
 
@@ -40,9 +40,9 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
           );
 
 
-  wire[11:0] exmem_out_new_branch_pc; wire exmem_out_zero; wire[7:0] exmem_out_alu_result; wire [7:0] exmem_out_data_2; wire[2:0] exmem_out_reg_write; wire exmem_out_MEM_mem_read_write; wire [1:0] exmem_out_MEM_pc_src; wire exmem_out_WB_mem_or_alu; wire exmem_out_WB_reg_write_signal;
+  wire[11:0] exmem_out_new_branch_pc; wire[7:0] exmem_out_alu_result; wire [7:0] exmem_out_data_2; wire[2:0] exmem_out_reg_write; wire exmem_out_MEM_mem_read_write; wire [1:0] exmem_out_MEM_pc_src; wire exmem_out_WB_mem_or_alu; wire exmem_out_WB_reg_write_signal;
 
-  EXMEM exmem(clk, branched_pc, zero, alu_result, idex_out_data_2, idex_out_ins1311, exmem_out_new_branch_pc, exmem_out_zero, exmem_out_alu_result, exmem_out_data_2, exmem_out_reg_write, idex_out_MEM_read_write, idex_out_MEM_pc_src, idex_out_WB_mem_or_alu, idex_WB_reg_write_signal, exmem_out_MEM_mem_read_write, exmem_out_MEM_pc_src,exmem_out_WB_mem_or_alu, exmem_out_WB_reg_write_signal);
+  EXMEM exmem(clk, branched_pc, alu_result, idex_out_data_2, idex_out_ins1311, exmem_out_new_branch_pc, exmem_out_alu_result, exmem_out_data_2, exmem_out_reg_write, idex_out_MEM_read_write, idex_out_MEM_pc_src, idex_out_WB_mem_or_alu, idex_WB_reg_write_signal, exmem_out_MEM_mem_read_write, exmem_out_MEM_pc_src,exmem_out_WB_mem_or_alu, exmem_out_WB_reg_write_signal);
 
   wire[7:0] memwb_out_read_data; wire[7:0] memwb_out_alu_result; wire[2:0] memwb_out_reg_write; wire memwb_out_WB_mem_or_alu; wire memwb_out_WB_reg_write_signal;
   
@@ -50,11 +50,11 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
 
   InstructionMemory instruction_memory(rst, pc, instruction);
 
-  RegisterFile register_file(rst, instruction[10:8], reg2_read_source ? instruction[13:11] : instruction[7:5], instruction[13:11],reg_write_signal, clk, mem_or_alu ? alu_result : data_memory_out, reg_out_1, reg_out_2);
+  RegisterFile register_file(rst, ifid_out_instruction[10:8], reg2_read_source ? ifid_out_instruction[13:11] : ifid_out_instruction[7:5], memwb_out_reg_write, exmem_out_WB_reg_write_signal, clk, memwb_out_WB_mem_or_alu ? memwb_out_alu_result : memwb_out_read_data, reg_out_1, reg_out_2);
   
-  ALU alu(rst, reg_out_1, (alu_src ? instruction[7:0] : ( is_shift ? {5'b0,instruction[7:5]} : reg_out_2)), carry, is_shift, update_z_c, scode, acode, alu_result, zero, alu_carry_out);
+  ALU alu(rst, idex_out_data_1, (idex_out_EX_alu_src ? idex_out_ins70 : ( idex_out_EX_is_shift ? {5'b0,idex_out_ins70[7:5]} : idex_out_data_2)), carry, idex_out_EX_is_shift, idex_out_EX_update_z_c, idex_out_EX_scode, idex_out_EX_acode, alu_result, zero, alu_carry_out);
 
-  DataMemory data_memory(rst, alu_result, reg_out_2, mem_read_write, clk, data_memory_out);
+  DataMemory data_memory(rst, exmem_out_alu_result, exmem_out_data_2, exmem_out_MEM_mem_read_write, clk, data_memory_out);
 
   Stack stack(rst, stack_push, stack_pop, clk, pc + {11'b0,1'b1}, stack_overflow, stack_out);
 
