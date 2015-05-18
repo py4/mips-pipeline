@@ -1,5 +1,5 @@
 `timescale 1ns/1ns
-module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input is_shift, input alu_src, update_z_c, reg_write_signal, stack_push, stack_pop, clk, input [1:0] pc_src, input [1:0] scode, input [2:0] acode, output zero, stack_overflow, output reg carry, output [18:0] instruction);
+module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input is_shift, input alu_src, update_z_c, reg_write_signal, stack_push, stack_pop, clk, input [1:0] pc_src, input [1:0] scode, input [2:0] acode, output zero, stack_overflow, output reg carry, output is_halt, output [18:0] instruction);
 
   reg[11:0] pc = 12'b0;  
 
@@ -8,16 +8,16 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
   wire[11:0] branched_pc;
 
   assign incremented_pc = pc + 1;
-  assign branched_pc =  idex_out_new_pc + {{4{idex_out_ins70[7]}},idex_out_ins70[7:0]};
-
+  assign branched_pc = ID_pc + {{4{ID_inst[7]}},ID_inst[7:0]}; 
+  assign is_halt = (MEM_inst == 19'b1);
   always @(posedge clk) begin
-    if (update_z_c==1) 
+    if (ID_update_z_c==1) 
       carry <= alu_carry_out;
-      case(exmem_out_MEM_pc_src)
+      case(EX_pc_src)
         2'b00: pc <= pc + 1;
-        2'b01: pc <= ifid_out_instruction[11:0];
+        2'b01: pc <= IF_inst[11:0];
         2'b10: pc <= stack_out;
-        2'b11: pc <= branched_pc;
+        2'b11: pc <= EX_branched_pc;
       endcase
   end
 
@@ -25,37 +25,93 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
     $display("reg_out_1:  %b", reg_out_1);
   end
 
-  wire [11:0] ifid_out_new_pc; wire[18:0] ifid_out_instruction;
-  IFID ifid(clk, incremented_pc, instruction, ifid_out_new_pc, ifid_out_instruction);
+  /*   IF    */
+  reg[11:0] IF_pc; reg[18:0] IF_inst;
+  initial begin
+    IF_pc <= 12'b0;
+    IF_inst <= 19'b0;
+  end
+  always @(posedge clk) begin
+    IF_pc <= incremented_pc;
+    IF_inst <= instruction;
+  end
 
-   wire[11:0] idex_out_new_pc; wire[7:0] idex_out_data_1; wire[7:0] idex_out_data_2; wire[7:0] idex_out_ins70; wire[2:0] idex_out_ins1311; wire[2:0] idex_out_ins75;
-  wire idex_out_EX_is_shift, idex_out_EX_alu_src, idex_out_EX_update_z_c; wire[1:0] idex_out_EX_scode; wire[2:0] idex_out_EX_acode; wire idex_out_MEM_mem_read_write; wire[1:0] idex_out_MEM_pc_src; wire idex_out_WB_mem_or_alu, idex_out_WB_reg_write_signal;
-
-  IDEX idex(clk, ifid_out_new_pc, reg_out_1, reg_out_2, instruction[7:0], instruction[13:11], idex_out_new_pc, idex_out_data_1, idex_out_data_2, idex_out_ins70, idex_out_ins1311,
-
-            is_shift, alu_src, update_z_c, scode, acode, mem_read_write, pc_src, mem_or_alu, reg_write_signal,
-
-            idex_out_EX_is_shift, idex_out_EX_alu_src, idex_out_EX_update_z_c, idex_out_EX_scode, idex_out_EX_acode, idex_out_MEM_mem_read_write, idex_out_MEM_pc_src, idex_out_WB_mem_or_alu,idex_out_WB_reg_write_signal
-
-          );
-
-
-  wire[11:0] exmem_out_new_branch_pc; wire[7:0] exmem_out_alu_result; wire [7:0] exmem_out_data_2; wire[2:0] exmem_out_reg_write; wire exmem_out_MEM_mem_read_write; wire [1:0] exmem_out_MEM_pc_src; wire exmem_out_WB_mem_or_alu; wire exmem_out_WB_reg_write_signal;
-
-  EXMEM exmem(clk, branched_pc, alu_result, idex_out_data_2, idex_out_ins1311, exmem_out_new_branch_pc, exmem_out_alu_result, exmem_out_data_2, exmem_out_reg_write, idex_out_MEM_read_write, idex_out_MEM_pc_src, idex_out_WB_mem_or_alu, idex_WB_reg_write_signal, exmem_out_MEM_mem_read_write, exmem_out_MEM_pc_src,exmem_out_WB_mem_or_alu, exmem_out_WB_reg_write_signal);
-
-  wire[7:0] memwb_out_read_data; wire[7:0] memwb_out_alu_result; wire[2:0] memwb_out_reg_write; wire memwb_out_WB_mem_or_alu; wire memwb_out_WB_reg_write_signal;
+  /*    ID    */
+  reg ID_is_shift;   reg ID_alu_src;   reg ID_update_z_c; 
+  reg[1:0] ID_scode; reg[2:0] ID_acode; reg ID_mem_read_write;
+  reg[1:0] ID_pc_src;  reg ID_mem_or_alu; reg ID_reg_write_signal;
+  reg[11:0] ID_pc; reg[7:0] ID_data_1; reg[7:0] ID_data_2;
+  reg[18:0] ID_inst; 
   
-  MEMWB memwb(clk, data_memory_out, exmem_out_alu_result, exmem_out_reg_write, memwb_out_read_data, memwb_out_alu_result, memwb_out_reg_write, exmem_out_WB_mem_or_alu, exmem_out_WB_reg_write_signal, memwb_out_WB_mem_or_alu, memwb_out_WB_reg_write_signal);
+  initial begin
+    ID_is_shift <= 0; ID_alu_src <= 0; ID_update_z_c <= 0;
+    ID_scode <= 2'b0; ID_acode <= 3'b0; ID_mem_read_write <= 0;
+    ID_pc_src <= 2'b0; ID_mem_or_alu <= 0; ID_reg_write_signal <= 0;
+    ID_pc <= 12'b0; ID_data_1 <= 8'b0;  ID_data_2 <= 8'b0;
+    ID_inst <= 19'b0;
+  end
+  always @(posedge clk) begin
+    ID_is_shift <= is_shift;     ID_alu_src <= alu_src;
+    ID_update_z_c <= update_z_c;     ID_scode <= scode;
+    ID_acode <= acode;     ID_mem_read_write <= mem_read_write;
+    ID_pc_src <= pc_src;     ID_mem_or_alu <= mem_or_alu;
+    ID_reg_write_signal <= reg_write_signal;     ID_pc <= IF_pc;
+    ID_data_1 <= reg_out_1;     ID_data_2 <= reg_out_2;
+    ID_inst <= IF_inst; 
+  end
+ 
+  /*      EX      */
+  reg[11:0] EX_branched_pc;  reg[7:0] EX_alu_result;  reg EX_mem_read_write;   
+  reg[1:0] EX_pc_src; reg EX_mem_or_alu;   reg EX_reg_write_signal;
+  reg[18:0] EX_inst; reg[7:0] EX_data_2;
+  initial begin
+    EX_branched_pc <= 12'b0;
+    EX_alu_result <= 8'b0;
+    EX_mem_read_write <= 0;
+    EX_pc_src <= 2'b0;
+    EX_mem_or_alu <= 0;
+    EX_reg_write_signal <= 0;
+    EX_inst <= 19'b0;
+    EX_data_2 <= 8'b0;
+  end
+  always @(posedge clk) begin
+    EX_branched_pc <= branched_pc;
+    EX_alu_result <= alu_result;
+    EX_mem_read_write <= ID_mem_read_write;
+    EX_reg_write_signal <= ID_reg_write_signal;
+    EX_inst <= ID_inst;
+    EX_pc_src <= ID_pc_src;
+    EX_mem_or_alu <= ID_mem_or_alu;
+    EX_data_2 <= ID_data_2;
+  end
 
+  
+  /*     MEM     */
+    reg[7:0] MEM_alu_result;  reg MEM_reg_write_signal; reg[18:0] MEM_inst; 
+    reg MEM_mem_or_alu; reg[7:0] MEM_read_data;
+    initial begin
+      MEM_alu_result <= 8'b0;
+      MEM_reg_write_signal <= 0;
+      MEM_inst <= 19'b0;
+      MEM_mem_or_alu <= 0;
+      MEM_read_data <= 8'b0;
+    end
+    always @(posedge clk) begin
+      MEM_alu_result <= EX_alu_result;
+      MEM_reg_write_signal <= EX_reg_write_signal;
+      MEM_inst <= EX_inst;
+      MEM_mem_or_alu <= EX_mem_or_alu;
+      MEM_read_data <= data_memory_out;
+    end
+  
   InstructionMemory instruction_memory(rst, pc, instruction);
 
-  RegisterFile register_file(rst, ifid_out_instruction[10:8], reg2_read_source ? ifid_out_instruction[13:11] : ifid_out_instruction[7:5], memwb_out_reg_write, exmem_out_WB_reg_write_signal, clk, memwb_out_WB_mem_or_alu ? memwb_out_alu_result : memwb_out_read_data, reg_out_1, reg_out_2);
+  RegisterFile register_file(rst, IF_inst[10:8], reg2_read_source ? IF_inst[13:11] : IF_inst[7:5], MEM_inst[13:11], MEM_reg_write_signal, clk, MEM_mem_or_alu ? MEM_alu_result : MEM_read_data, reg_out_1, reg_out_2);
   
-  ALU alu(rst, idex_out_data_1, (idex_out_EX_alu_src ? idex_out_ins70 : ( idex_out_EX_is_shift ? {5'b0,idex_out_ins70[7:5]} : idex_out_data_2)), carry, idex_out_EX_is_shift, idex_out_EX_update_z_c, idex_out_EX_scode, idex_out_EX_acode, alu_result, zero, alu_carry_out);
+  ALU alu(rst, ID_data_1, (ID_alu_src ? ID_insts[7:0] : ( ID_is_shift ? {5'b0,ID_inst[7:5]} : ID_data_2)), carry, ID_is_shift, ID_update_z_c, ID_scode, ID_acode, alu_result, zero, alu_carry_out);
 
-  DataMemory data_memory(rst, exmem_out_alu_result, exmem_out_data_2, exmem_out_MEM_mem_read_write, clk, data_memory_out);
+  DataMemory data_memory(rst, EX_alu_result, EX_data_2, EX_mem_read_write, clk, data_memory_out);
 
-  Stack stack(rst, stack_push, stack_pop, clk, pc + {11'b0,1'b1}, stack_overflow, stack_out);
+  Stack stack(rst, stack_push, stack_pop, clk, IF_pc + {11'b0,1'b1}, stack_overflow, stack_out);
 
 endmodule

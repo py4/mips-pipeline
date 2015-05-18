@@ -18,6 +18,9 @@ output reg out_WB_mem_or_alu, out_WB_reg_write_signal
   reg MEM_mem_read_write; reg[1:0] MEM_pc_src;
   reg WB_mem_or_alu, WB_reg_write_signal;
 
+  initial begin
+    MEM_pc_src = 2'b00;
+  end
 
   always @(posedge clk) begin
     out_new_branch_pc = new_branch_pc;
