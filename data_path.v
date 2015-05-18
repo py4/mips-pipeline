@@ -108,7 +108,7 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
 
   RegisterFile register_file(rst, IF_inst[10:8], reg2_read_source ? IF_inst[13:11] : IF_inst[7:5], MEM_inst[13:11], MEM_reg_write_signal, clk, MEM_mem_or_alu ? MEM_alu_result : MEM_read_data, reg_out_1, reg_out_2);
   
-  ALU alu(rst, ID_data_1, (ID_alu_src ? ID_insts[7:0] : ( ID_is_shift ? {5'b0,ID_inst[7:5]} : ID_data_2)), carry, ID_is_shift, ID_update_z_c, ID_scode, ID_acode, alu_result, zero, alu_carry_out);
+  ALU alu(rst, ID_data_1, (ID_alu_src ? ID_inst[7:0] : ( ID_is_shift ? {5'b0,ID_inst[7:5]} : ID_data_2)), carry, ID_is_shift, ID_update_z_c, ID_scode, ID_acode, alu_result, zero, alu_carry_out);
 
   DataMemory data_memory(rst, EX_alu_result, EX_data_2, EX_mem_read_write, clk, data_memory_out);
 
