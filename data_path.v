@@ -1,5 +1,5 @@
 `timescale 1ns/1ns
-module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input is_shift, input alu_src, update_z_c, reg_write_signal, stack_push, stack_pop, clk, input [1:0] pc_src, input [1:0] scode, input [2:0] acode, output zero, stack_overflow, output reg carry, output is_halt, output [18:0] instruction);
+module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input is_shift, input alu_src, update_z_c, reg_write_signal, stack_push, stack_pop, clk, input [1:0] pc_src, input [1:0] scode, input [2:0] acode, output zero, stack_overflow, output reg carry, output is_halt, output [18:0] IF_inst);
 
   reg[11:0] pc = 12'b0;  
 
@@ -7,9 +7,11 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
   wire[11:0] incremented_pc;
   wire[11:0] branched_pc;
 
+  wire[18:0] instruction;
+
   assign incremented_pc = pc + 1;
   assign branched_pc = ID_pc + {{4{ID_inst[7]}},ID_inst[7:0]}; 
-  assign is_halt = (MEM_inst == 19'b1);
+  assign is_halt = (MEM_inst == 19'b1111111111111111111);
   always @(posedge clk) begin
     if (ID_update_z_c==1) 
       carry <= alu_carry_out;
