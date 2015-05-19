@@ -108,12 +108,20 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
   
   InstructionMemory instruction_memory(rst, pc, instruction);
 
-  RegisterFile register_file(rst, IF_inst[10:8], reg2_read_source ? IF_inst[13:11] : IF_inst[7:5], MEM_inst[13:11], MEM_reg_write_signal, clk, MEM_mem_or_alu ? MEM_alu_result : MEM_read_data, reg_out_1, reg_out_2);
   
-  ALU alu(rst, ID_data_1, (ID_alu_src ? ID_inst[7:0] : ( ID_is_shift ? {5'b0,ID_inst[7:5]} : ID_data_2)), carry, ID_is_shift, ID_update_z_c, ID_scode, ID_acode, alu_result, zero, alu_carry_out);
+  RegisterFile register_file(rst, IF_inst[10:8], reg2_read_source ? IF_inst[13:11] : IF_inst[7:5], MEM_inst[13:11], MEM_reg_write_signal, clk, MEM_mem_or_alu ? MEM_alu_result : MEM_read_data, reg_out_1, reg_out_2);
+
+
+  wire[7:0] alu_A; wire[7:0] alu_B;
+  ForwardSelector forward_selector(forward_A, forward_B, ID_data_1, EX_alu_result, MEM_mem_or_alu ? MEM_alu_result : MEM_read_data, ( ID_is_shift ? {5'b0,ID_inst[7:5]} : ID_data_2), alu_A, alu_B);
+  
+  ALU alu(rst, alu_A, (ID_alu_src ? ID_inst[7:0] : alu_B), carry, ID_is_shift, ID_update_z_c, ID_scode, ID_acode, alu_result, zero, alu_carry_out);
 
   DataMemory data_memory(rst, EX_alu_result, EX_data_2, EX_mem_read_write, clk, data_memory_out);
 
   Stack stack(rst, stack_push, stack_pop, clk, IF_pc + {11'b0,1'b1}, stack_overflow, stack_out);
+
+  wire[1:0] forward_A; wire[1:0]forward_B;
+  ForwardingUnit forwarding_unit(reg2_read_source, EX_reg_write_signal, EX_inst, ID_inst, MEM_reg_write_signal, MEM_inst, forward_A, forward_B);
 
 endmodule
