@@ -1,14 +1,14 @@
 `timescale 1ns/1ns
-module Controller(input rst, zero, carry, clk, input is_halt, input[18:0] instruction, output reg reg2_read_source, mem_read_write, mem_or_alu, output reg  is_shift, output reg alu_src, update_z_c, reg_write_signal, stack_push, stack_pop, output reg [1:0] pc_src, output reg [1:0] scode, output reg [2:0] acode);
+module Controller(input rst, zero, carry, clk, input is_halt, input[18:0] instruction, output reg reg2_read_source, mem_read, mem_write,  mem_or_alu, output reg  is_shift, output reg alu_src, update_z_c, reg_write_signal, stack_push, stack_pop, output reg [1:0] pc_src, output reg [1:0] scode, output reg [2:0] acode);
   
   initial begin
-    update_z_c <= 0; reg2_read_source <= 0; mem_read_write <= 0; mem_or_alu <= 0; is_shift <= 0;
+    update_z_c <= 0; reg2_read_source <= 0; mem_read <= 0; mem_write <= 0; mem_or_alu <= 0; is_shift <= 0;
     alu_src <= 0; reg_write_signal <= 0; stack_push <= 0; stack_pop <= 0; pc_src <= 2'b0; scode <= 2'b0; acode <= 3'b0;
   end
 
   always @(posedge clk, instruction) begin //instruction commented
     //#1;
-    reg2_read_source <= 0; mem_read_write <= 0; mem_or_alu <= 0; is_shift <= 0; alu_src <= 0; reg_write_signal <= 0; stack_push <= 0; stack_pop <= 0; pc_src <= 2'b0; scode <= 2'b0; acode <= 3'b0; update_z_c <= 0;
+    reg2_read_source <= 0; mem_read <= 0; mem_write <=0;  mem_or_alu <= 0; is_shift <= 0; alu_src <= 0; reg_write_signal <= 0; stack_push <= 0; stack_pop <= 0; pc_src <= 2'b0; scode <= 2'b0; acode <= 3'b0; update_z_c <= 0;
 
     $display(">>> alu src:  %d", alu_src);
     $display(">>> current instruction: %b", instruction);
@@ -53,10 +53,10 @@ module Controller(input rst, zero, carry, clk, input is_halt, input[18:0] instru
       mem_or_alu <= 0;
       alu_src <= 1;
       if(instruction[15:14] == 2'b00) begin //load
-        mem_read_write <= 0;
+        mem_read <= 1;
         reg_write_signal <= 1;
       end else if(instruction[15:14] == 2'b01) begin // store
-        mem_read_write <= 1;
+        mem_write <= 1;
       end
     end
 
