@@ -23,6 +23,9 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
         2'b11: pc <= EX_branched_pc;
       endcase
     end
+    if(is_flush == 1'b1) begin
+      pc <= EX_branched_pc;
+    end
   end
 
   always @(reg_out_1) begin
@@ -38,6 +41,10 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
   always @(negedge clk) begin
     IF_pc <= incremented_pc;
     IF_inst <= instruction;
+    if(is_flush == 1'b1) begin
+      IF_pc <= 0;
+      IF_inst <= 0;
+    end
   end
 
   /*    ID    */
@@ -55,7 +62,7 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
     ID_inst = 19'b0; ID_reg2_read_source = 1'b0;
   end
   always @(negedge clk) begin
-    if(is_stall == 1'b0) begin
+    if((is_stall == 2'b0) & (is_flush == 1'b0)) begin
       ID_is_shift <= is_shift;
       ID_alu_src <= alu_src;
       ID_update_z_c <= update_z_c;
@@ -147,7 +154,7 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
   wire[1:0] forward_A; wire[1:0]forward_B; wire forward_mem_data;
   ForwardingUnit forwarding_unit(EX_mem_write, ID_reg2_read_source, EX_reg_write_signal, EX_inst, ID_inst, MEM_reg_write_signal, MEM_inst, forward_A, forward_B, forward_mem_data);
 
-  wire is_stall;
-  HazardDetector hazard_detector(ID_mem_read, reg2_read_source, ID_inst, IF_inst, is_stall);
+  wire is_stall, is_flush;
+  HazardDetector hazard_detector(EX_inst, zero, carry, ID_mem_read, reg2_read_source, ID_inst, IF_inst, is_stall, is_flush);
 
 endmodule
