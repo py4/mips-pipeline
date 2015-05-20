@@ -34,7 +34,6 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
     IF_inst = 19'b0;
   end
   always @(negedge clk) begin
-    #1
     IF_pc <= incremented_pc;
     IF_inst <= instruction;
   end
@@ -124,5 +123,8 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
 
   wire[1:0] forward_A; wire[1:0]forward_B;
   ForwardingUnit forwarding_unit(reg2_read_source, EX_reg_write_signal, EX_inst, ID_inst, MEM_reg_write_signal, MEM_inst, forward_A, forward_B);
+
+  wire is_stall;
+  HazardDetector hazard_detector(ID_mem_read_write, reg2_read_source, ID_inst, IF_inst, is_stall);
 
 endmodule
