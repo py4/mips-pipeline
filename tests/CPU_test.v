@@ -5,7 +5,9 @@ module CPUTest;
   wire zero, carry, stack_overflow;
 
   MIPSCPU cpu(clk, rst, zero, carry, stack_overflow);
-
+  initial begin
+    clk = 0;
+  end
   always begin
     #20 clk = ~clk;
     //if(clk == 1) begin

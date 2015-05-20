@@ -30,10 +30,10 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
   /*   IF    */
   reg[11:0] IF_pc; reg[18:0] IF_inst;
   initial begin
-    IF_pc <= 12'b0;
-    IF_inst <= 19'b0;
+    IF_pc = 12'b0;
+    IF_inst = 19'b0;
   end
-  always @(posedge clk) begin
+  always @(negedge clk) begin
     IF_pc <= incremented_pc;
     IF_inst <= instruction;
   end
@@ -41,18 +41,18 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
   /*    ID    */
   reg ID_is_shift;   reg ID_alu_src;   reg ID_update_z_c; 
   reg[1:0] ID_scode; reg[2:0] ID_acode; reg ID_mem_read_write;
-  reg[1:0] ID_pc_src;  reg ID_mem_or_alu; reg ID_reg_write_signal;
+  reg[1:0] ID_pc_src = 2'b0;  reg ID_mem_or_alu; reg ID_reg_write_signal;
   reg[11:0] ID_pc; reg[7:0] ID_data_1; reg[7:0] ID_data_2;
   reg[18:0] ID_inst; 
   
   initial begin
-    ID_is_shift <= 0; ID_alu_src <= 0; ID_update_z_c <= 0;
-    ID_scode <= 2'b0; ID_acode <= 3'b0; ID_mem_read_write <= 0;
-    ID_pc_src <= 2'b0; ID_mem_or_alu <= 0; ID_reg_write_signal <= 0;
-    ID_pc <= 12'b0; ID_data_1 <= 8'b0;  ID_data_2 <= 8'b0;
-    ID_inst <= 19'b0;
+    ID_is_shift = 0; ID_alu_src = 0; ID_update_z_c = 0;
+    ID_scode = 2'b0; ID_acode = 3'b0; ID_mem_read_write = 0;
+    ID_pc_src = 2'b0; ID_mem_or_alu = 0; ID_reg_write_signal = 0;
+    ID_pc = 12'b0; ID_data_1 = 8'b0;  ID_data_2 = 8'b0;
+    ID_inst = 19'b0;
   end
-  always @(posedge clk) begin
+  always @(negedge clk) begin
     ID_is_shift <= is_shift;     ID_alu_src <= alu_src;
     ID_update_z_c <= update_z_c;     ID_scode <= scode;
     ID_acode <= acode;     ID_mem_read_write <= mem_read_write;
@@ -67,16 +67,16 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
   reg[1:0] EX_pc_src; reg EX_mem_or_alu;   reg EX_reg_write_signal;
   reg[18:0] EX_inst; reg[7:0] EX_data_2;
   initial begin
-    EX_branched_pc <= 12'b0;
-    EX_alu_result <= 8'b0;
-    EX_mem_read_write <= 0;
-    EX_pc_src <= 2'b0;
-    EX_mem_or_alu <= 0;
-    EX_reg_write_signal <= 0;
-    EX_inst <= 19'b0;
-    EX_data_2 <= 8'b0;
+    EX_branched_pc = 12'b0;
+    EX_alu_result = 8'b0;
+    EX_mem_read_write = 0;
+    EX_pc_src = 2'b0;
+    EX_mem_or_alu = 0;
+    EX_reg_write_signal = 0;
+    EX_inst = 19'b0;
+    EX_data_2 = 8'b0;
   end
-  always @(posedge clk) begin
+  always @(negedge clk) begin
     EX_branched_pc <= branched_pc;
     EX_alu_result <= alu_result;
     EX_mem_read_write <= ID_mem_read_write;
@@ -92,13 +92,13 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
     reg[7:0] MEM_alu_result;  reg MEM_reg_write_signal; reg[18:0] MEM_inst; 
     reg MEM_mem_or_alu; reg[7:0] MEM_read_data;
     initial begin
-      MEM_alu_result <= 8'b0;
-      MEM_reg_write_signal <= 0;
-      MEM_inst <= 19'b0;
-      MEM_mem_or_alu <= 0;
-      MEM_read_data <= 8'b0;
+      MEM_alu_result = 8'b0;
+      MEM_reg_write_signal = 0;
+      MEM_inst = 19'b0;
+      MEM_mem_or_alu = 0;
+      MEM_read_data = 8'b0;
     end
-    always @(posedge clk) begin
+    always @(negedge clk) begin
       MEM_alu_result <= EX_alu_result;
       MEM_reg_write_signal <= EX_reg_write_signal;
       MEM_inst <= EX_inst;
