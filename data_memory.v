@@ -3,6 +3,13 @@ module DataMemory(input rst, input[7:0] address, input[7:0] write_data, input re
 
   reg[7:0] data[255:0];
 
+  initial begin
+    data[100] = 8'b10000001;
+    data[101] = 8'b01111111;
+    data[102] = 8'b10000001;
+    data[103] = 8'b10000000;
+  end
+
   always @(posedge clk) begin
     if(write & clk)
       data[address] <= write_data;

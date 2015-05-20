@@ -45,14 +45,14 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
   reg[1:0] ID_scode; reg[2:0] ID_acode; reg ID_mem_read; reg ID_mem_write;
   reg[1:0] ID_pc_src = 2'b0;  reg ID_mem_or_alu; reg ID_reg_write_signal;
   reg[11:0] ID_pc; reg[7:0] ID_data_1; reg[7:0] ID_data_2;
-  reg[18:0] ID_inst; 
+  reg[18:0] ID_inst; reg ID_reg2_read_source; 
   
   initial begin
     ID_is_shift = 0; ID_alu_src = 0; ID_update_z_c = 0;
     ID_scode = 2'b0; ID_acode = 3'b0; ID_mem_read = 0; ID_mem_write = 0;
     ID_pc_src = 2'b0; ID_mem_or_alu = 0; ID_reg_write_signal = 0;
     ID_pc = 12'b0; ID_data_1 = 8'b0;  ID_data_2 = 8'b0;
-    ID_inst = 19'b0;
+    ID_inst = 19'b0; ID_reg2_read_source = 1'b0;
   end
   always @(negedge clk) begin
     if(is_stall == 1'b0) begin
@@ -70,12 +70,14 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
       ID_data_1 <= reg_out_1;
       ID_data_2 <= reg_out_2;
       ID_inst <= IF_inst;
+      ID_reg2_read_source <= reg2_read_source;
     end else begin
+      #1
       ID_is_shift = 0; ID_alu_src = 0; ID_update_z_c = 0;
       ID_scode = 2'b0; ID_acode = 3'b0; ID_mem_read = 0; ID_mem_write = 0;
       ID_pc_src = 2'b0; ID_mem_or_alu = 0; ID_reg_write_signal = 0;
       ID_pc = 12'b0; ID_data_1 = 8'b0;  ID_data_2 = 8'b0;
-      ID_inst = 19'b0;
+      ID_inst = 19'b0; ID_reg2_read_source = 1'b0;
     end
   end
  
@@ -143,7 +145,7 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
   Stack stack(rst, stack_push, stack_pop, clk, IF_pc + {11'b0,1'b1}, stack_overflow, stack_out);
 
   wire[1:0] forward_A; wire[1:0]forward_B; wire forward_mem_data;
-  ForwardingUnit forwarding_unit(EX_mem_write, reg2_read_source, EX_reg_write_signal, EX_inst, ID_inst, MEM_reg_write_signal, MEM_inst, forward_A, forward_B, forward_mem_data);
+  ForwardingUnit forwarding_unit(EX_mem_write, ID_reg2_read_source, EX_reg_write_signal, EX_inst, ID_inst, MEM_reg_write_signal, MEM_inst, forward_A, forward_B, forward_mem_data);
 
   wire is_stall;
   HazardDetector hazard_detector(ID_mem_read, reg2_read_source, ID_inst, IF_inst, is_stall);
