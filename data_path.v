@@ -13,14 +13,16 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
   assign branched_pc = ID_pc + {{4{ID_inst[7]}},ID_inst[7:0]}; 
   assign is_halt = (MEM_inst == 19'b1111111111111111111);
   always @(posedge clk) begin
-    if (ID_update_z_c==1) 
-      carry <= alu_carry_out;
+    if(is_stall == 1'b0) begin
+      if (ID_update_z_c==1)  // should update_z_c be inside or outside of is_stall?
+        carry <= alu_carry_out;
       case(EX_pc_src)
         2'b00: pc <= pc + 1;
         2'b01: pc <= IF_inst[11:0];
         2'b10: pc <= stack_out;
         2'b11: pc <= EX_branched_pc;
       endcase
+    end
   end
 
   always @(reg_out_1) begin
@@ -53,14 +55,28 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
     ID_inst = 19'b0;
   end
   always @(negedge clk) begin
-    ID_is_shift <= is_shift;     ID_alu_src <= alu_src;
-    ID_update_z_c <= update_z_c;     ID_scode <= scode;
-    ID_acode <= acode;     ID_mem_read <= mem_read;
-    ID_mem_write <= mem_write;
-    ID_pc_src <= pc_src;     ID_mem_or_alu <= mem_or_alu;
-    ID_reg_write_signal <= reg_write_signal;     ID_pc <= IF_pc;
-    ID_data_1 <= reg_out_1;     ID_data_2 <= reg_out_2;
-    ID_inst <= IF_inst; 
+    if(is_stall == 1'b0) begin
+      ID_is_shift <= is_shift;
+      ID_alu_src <= alu_src;
+      ID_update_z_c <= update_z_c;
+      ID_scode <= scode;
+      ID_acode <= acode;
+      ID_mem_read <= mem_read;
+      ID_mem_write <= mem_write;
+      ID_pc_src <= pc_src;
+      ID_mem_or_alu <= mem_or_alu;
+      ID_reg_write_signal <= reg_write_signal;
+      ID_pc <= IF_pc;
+      ID_data_1 <= reg_out_1;
+      ID_data_2 <= reg_out_2;
+      ID_inst <= IF_inst;
+    end else begin
+      ID_is_shift = 0; ID_alu_src = 0; ID_update_z_c = 0;
+      ID_scode = 2'b0; ID_acode = 3'b0; ID_mem_read = 0; ID_mem_write = 0;
+      ID_pc_src = 2'b0; ID_mem_or_alu = 0; ID_reg_write_signal = 0;
+      ID_pc = 12'b0; ID_data_1 = 8'b0;  ID_data_2 = 8'b0;
+      ID_inst = 19'b0;
+    end
   end
  
   /*      EX      */
@@ -122,12 +138,12 @@ module DataPath(input rst, reg2_read_source, mem_read, mem_write, mem_or_alu, in
   
   ALU alu(rst, alu_A, (ID_alu_src ? ID_inst[7:0] : alu_B), carry, ID_is_shift, ID_update_z_c, ID_scode, ID_acode, alu_result, zero, alu_carry_out);
 
-  DataMemory data_memory(rst, EX_alu_result, EX_data_2, EX_mem_read, EX_mem_write, clk, data_memory_out);
+  DataMemory data_memory(rst, EX_alu_result, (forward_mem_data == 1'b0 ? EX_data_2 : MEM_alu_result), EX_mem_read, EX_mem_write, clk, data_memory_out);
 
   Stack stack(rst, stack_push, stack_pop, clk, IF_pc + {11'b0,1'b1}, stack_overflow, stack_out);
 
-  wire[1:0] forward_A; wire[1:0]forward_B;
-  ForwardingUnit forwarding_unit(reg2_read_source, EX_reg_write_signal, EX_inst, ID_inst, MEM_reg_write_signal, MEM_inst, forward_A, forward_B);
+  wire[1:0] forward_A; wire[1:0]forward_B; wire forward_mem_data;
+  ForwardingUnit forwarding_unit(EX_mem_write, reg2_read_source, EX_reg_write_signal, EX_inst, ID_inst, MEM_reg_write_signal, MEM_inst, forward_A, forward_B, forward_mem_data);
 
   wire is_stall;
   HazardDetector hazard_detector(ID_mem_read, reg2_read_source, ID_inst, IF_inst, is_stall);
