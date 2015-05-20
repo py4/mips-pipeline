@@ -34,6 +34,7 @@ module DataPath(input rst, reg2_read_source, mem_read_write, mem_or_alu, input i
     IF_inst = 19'b0;
   end
   always @(negedge clk) begin
+    #1
     IF_pc <= incremented_pc;
     IF_inst <= instruction;
   end

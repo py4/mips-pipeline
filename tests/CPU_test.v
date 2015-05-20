@@ -1,12 +1,12 @@
 `timescale 1ns/1ns
 
 module CPUTest;
-  reg clk = 0, rst;
+  reg clk = 1, rst;
   wire zero, carry, stack_overflow;
 
   MIPSCPU cpu(clk, rst, zero, carry, stack_overflow);
   initial begin
-    clk = 0;
+    clk = 1;
   end
   always begin
     #20 clk = ~clk;
